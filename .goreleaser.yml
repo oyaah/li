@@ -81,5 +81,10 @@ homebrew_casks:
     license: MIT
     binaries:
       - li
+    hooks:
+      post:
+        install: |
+          system_command "/usr/bin/xattr", args: ["-cr", "#{staged_path}/li"]
+          system_command "/usr/bin/codesign", args: ["--force", "--sign", "-", "#{staged_path}/li"]
     caveats: |
       Run `li login` to authenticate with LinkedIn, then `li doctor` to verify the session.

@@ -8,7 +8,7 @@ First public releases are macOS/Homebrew-first:
 
 ```sh
 brew tap oyaah/tap
-brew install li
+brew install --cask oyaah/tap/li
 ```
 
 GitHub release artifacts may include Linux and Windows binaries, but do not call those auth paths fully supported until they have fresh live validation.
@@ -92,7 +92,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The release workflow runs GoReleaser, publishes GitHub artifacts, and updates the Homebrew tap.
+The release workflow runs GoReleaser, publishes GitHub artifacts, and updates the Homebrew cask in the tap.
 
 ## Post-Release Verification
 
@@ -100,7 +100,7 @@ From a clean shell:
 
 ```sh
 brew update
-brew install oyaah/tap/li
+brew install --cask oyaah/tap/li
 li version
 li doctor
 ```
