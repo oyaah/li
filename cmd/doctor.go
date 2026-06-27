@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/oyaah/li/internal/output"
 	"github.com/oyaah/li/internal/voyager"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,9 @@ var doctorCmd = &cobra.Command{
 			return err
 		}
 		report := c.Health()
-		out.Human("schema version: %s", report.SchemaVersion)
+		if out.Format == output.Human {
+			out.Human("schema version: %s", report.SchemaVersion)
+		}
 		if err := out.Data(report); err != nil {
 			return err
 		}

@@ -4,6 +4,10 @@ All notable changes to `li` are documented here.
 
 ## Unreleased
 
+## v0.1.2
+
+- Kept `li doctor --json` quiet on stderr so script consumers get clean machine output.
+
 ## v0.1.1
 
 - Fixed Homebrew cask installs on macOS by clearing downloaded binary metadata and ad-hoc signing during cask postflight.
