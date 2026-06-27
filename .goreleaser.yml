@@ -1,0 +1,85 @@
+version: 2
+
+project_name: li
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: li
+    main: .
+    binary: li
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/oyaah/li/cmd.version={{ .Version }}
+      - -X github.com/oyaah/li/cmd.commit={{ .Commit }}
+      - -X github.com/oyaah/li/cmd.date={{ .Date }}
+
+archives:
+  - id: li
+    ids:
+      - li
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: oyaah
+    name: li
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: li
+    ids:
+      - li
+    repository:
+      owner: oyaah
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/oyaah/li"
+    description: "Free, lightweight LinkedIn CLI over Voyager"
+    license: MIT
+    binaries:
+      - li
+    caveats: |
+      Run `li login` to authenticate with LinkedIn, then `li doctor` to verify the session.

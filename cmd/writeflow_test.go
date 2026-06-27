@@ -37,7 +37,7 @@ func writeServer(profileOK bool) (*httptest.Server, *[]string) {
 		mu.Lock()
 		calls = append(calls, r.Method+" "+r.URL.Path)
 		mu.Unlock()
-		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/identity/profiles") {
+		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/identity/dash/profiles") {
 			if profileOK {
 				w.Write([]byte(`{"profile":{"firstName":"A","lastName":"B","entityUrn":"urn:li:fs_profile:123"}}`))
 			} else {
@@ -70,7 +70,7 @@ func TestConnectWarmUpBeforePost(t *testing.T) {
 	if len(*calls) != 2 {
 		t.Fatalf("expected 2 calls, got %v", *calls)
 	}
-	if !strings.HasPrefix((*calls)[0], "GET ") || !strings.Contains((*calls)[0], "/identity/profiles") {
+	if !strings.HasPrefix((*calls)[0], "GET ") || !strings.Contains((*calls)[0], "/identity/dash/profiles") {
 		t.Fatalf("first call should be warm-up GET, got %q", (*calls)[0])
 	}
 	if !strings.HasPrefix((*calls)[1], "POST ") {

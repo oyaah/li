@@ -34,14 +34,76 @@ func ParseJobs(b []byte) (Jobs, error) {
 		} `json:"elements"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, driftf("jobs: invalid json")
+		return nil, driftf("jobs: invalid json: %v", err)
 	}
-	if raw.Elements == nil {
+	if raw.Elements != nil {
+		out := make(Jobs, 0, len(*raw.Elements))
+		for _, e := range *raw.Elements {
+			out = append(out, Job{JobID: e.JobPostingID, Title: e.Title, Company: e.Company, Location: e.Location})
+		}
+		return out, nil
+	}
+	return parseDashJobs(b)
+}
+
+func parseDashJobs(b []byte) (Jobs, error) {
+	var raw struct {
+		Data struct {
+			Elements []struct {
+				JobCardUnion struct {
+					JobPostingCard string `json:"*jobPostingCard"`
+				} `json:"jobCardUnion"`
+			} `json:"elements"`
+		} `json:"data"`
+		Included []json.RawMessage `json:"included"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, driftf("jobs: invalid json: %v", err)
+	}
+	if raw.Data.Elements == nil {
 		return nil, driftf("jobs: missing 'elements'")
 	}
-	out := make(Jobs, 0, len(*raw.Elements))
-	for _, e := range *raw.Elements {
-		out = append(out, Job{JobID: e.JobPostingID, Title: e.Title, Company: e.Company, Location: e.Location})
+	byURN := map[string]dashJobCard{}
+	for _, item := range raw.Included {
+		var inc dashJobCard
+		if json.Unmarshal(item, &inc) != nil || inc.JobPosting == "" {
+			continue
+		}
+		byURN[inc.EntityURN] = inc
+	}
+	out := make(Jobs, 0, len(raw.Data.Elements))
+	for _, e := range raw.Data.Elements {
+		card, ok := byURN[e.JobCardUnion.JobPostingCard]
+		if !ok {
+			continue
+		}
+		out = append(out, Job{
+			JobID:    urnID(card.JobPosting),
+			Title:    card.Title.Text,
+			Company:  card.PrimaryDescription.Text,
+			Location: card.SecondaryDescription.Text,
+		})
 	}
 	return out, nil
+}
+
+type textVM struct {
+	Text string `json:"text"`
+}
+
+type dashJobCard struct {
+	EntityURN            string `json:"entityUrn"`
+	JobPosting           string `json:"*jobPosting"`
+	Title                textVM `json:"title"`
+	PrimaryDescription   textVM `json:"primaryDescription"`
+	SecondaryDescription textVM `json:"secondaryDescription"`
+}
+
+func urnID(urn string) string {
+	for i := len(urn) - 1; i >= 0; i-- {
+		if urn[i] == ':' {
+			return urn[i+1:]
+		}
+	}
+	return urn
 }

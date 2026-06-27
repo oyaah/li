@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/oyaah/li/internal/auth"
 	"github.com/oyaah/li/internal/output"
 	"github.com/oyaah/li/internal/safety"
 	"github.com/oyaah/li/internal/voyager"
@@ -63,14 +64,14 @@ func runPost(c *voyager.Client, l *safety.Ledger, j *safety.Jitterer, p *output.
 }
 
 // deps assembles the live client/ledger/jitter for the cobra commands.
-func writeDeps() (*voyager.Client, *safety.Ledger, *safety.Jitterer, error) {
-	c, err := authedClient()
+func writeDeps() (voyager.Creds, *voyager.Client, *safety.Ledger, *safety.Jitterer, error) {
+	creds, err := auth.Load()
 	if err != nil {
-		return nil, nil, nil, err
+		return voyager.Creds{}, nil, nil, nil, err
 	}
 	l, err := safety.DefaultLedger()
 	if err != nil {
-		return nil, nil, nil, err
+		return voyager.Creds{}, nil, nil, nil, err
 	}
-	return c, l, safety.NewJitter(), nil
+	return creds, voyager.New(creds), l, safety.NewJitter(), nil
 }

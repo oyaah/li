@@ -58,11 +58,7 @@ func (c *Client) Health() Report {
 	_, err := c.MeName()
 	probes = append(probes, classify("profile", err))
 
-	pp, pParams := PeopleSearch("test", "", "")
-	probes = append(probes, classify("people-search", getAndParse(c, pp, pParams, func(b []byte) error {
-		_, e := ParsePeople(b)
-		return e
-	})))
+	probes = append(probes, classify("people-search", peopleSearchHealth(c)))
 
 	jp, jParams := JobSearch("test", "")
 	probes = append(probes, classify("job-search", getAndParse(c, jp, jParams, func(b []byte) error {
@@ -70,12 +66,36 @@ func (c *Client) Health() Report {
 		return e
 	})))
 
-	probes = append(probes, classify("messaging", getAndParse(c, Conversations(), nil, func(b []byte) error {
-		_, e := ParseInbox(b)
-		return e
-	})))
+	probes = append(probes, classify("messaging", messagingHealth(c)))
 
 	return Report{SchemaVersion: SchemaVersion, Probes: probes}
+}
+
+func peopleSearchHealth(c *Client) error {
+	if c.Base != BaseURL {
+		pp, pParams := PeopleSearch("test", "", "")
+		return getAndParse(c, pp, pParams, func(b []byte) error {
+			_, e := ParsePeople(b)
+			return e
+		})
+	}
+	_, err := SearchPeoplePage(c.creds, "founder", "", "")
+	return err
+}
+
+func messagingHealth(c *Client) error {
+	me, err := c.GetRaw(Me(), nil)
+	if err != nil {
+		return err
+	}
+	mailbox := MailboxURN(me)
+	if mailbox == "" {
+		return driftf("messaging: missing mailbox urn")
+	}
+	return getAndParse(c, Conversations(mailbox), nil, func(b []byte) error {
+		_, e := ParseInbox(b)
+		return e
+	})
 }
 
 func getAndParse(c *Client, path string, params map[string][]string, parse func([]byte) error) error {

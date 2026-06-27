@@ -44,6 +44,37 @@ func TestRunLoginValidStores(t *testing.T) {
 	}
 }
 
+func TestRunLoginLiAtOnlyStoresAfterBootstrap(t *testing.T) {
+	keyring.MockInit()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/":
+			http.SetCookie(w, &http.Cookie{Name: "JSESSIONID", Value: "ajax:minted", Quoted: true, Path: "/"})
+			w.Write([]byte(`<html></html>`))
+		case "/me":
+			if r.Header.Get("csrf-token") != "ajax:minted" {
+				t.Fatalf("csrf-token = %q", r.Header.Get("csrf-token"))
+			}
+			w.Write([]byte(`{"firstName":"Ada","lastName":"Lovelace"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	creds := voyager.Creds{LiAt: "x"}
+	if err := runLogin(creds, clientFor(srv.URL, creds)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := auth.Load()
+	if err != nil {
+		t.Fatalf("expected stored creds: %v", err)
+	}
+	if got.LiAt != "x" || got.JSESSIONID != "" {
+		t.Fatalf("stored %+v", got)
+	}
+}
+
 func TestRunLoginInvalidDoesNotStore(t *testing.T) {
 	keyring.MockInit()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -17,3 +17,9 @@ func driftf(format string, a ...any) error {
 func authf(format string, a ...any) error {
 	return fmt.Errorf("%s: %w", fmt.Sprintf(format, a...), output.ErrAuth)
 }
+
+// usagef wraps output.ErrUsage for cases where LinkedIn rejects an otherwise
+// valid action because the target/account state does not allow it.
+func usagef(format string, a ...any) error {
+	return fmt.Errorf("%s: %w", fmt.Sprintf(format, a...), output.ErrUsage)
+}

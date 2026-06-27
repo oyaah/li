@@ -24,7 +24,7 @@ func TestCsrfStripsQuotes(t *testing.T) {
 	}
 }
 
-func TestBuildRequestHeadersAndCookies(t *testing.T) {
+func TestBuildRequestHeaders(t *testing.T) {
 	c := testClient(BaseURL)
 	req, err := c.buildRequest(http.MethodGet, "/x", nil, nil)
 	if err != nil {
@@ -41,9 +41,30 @@ func TestBuildRequestHeadersAndCookies(t *testing.T) {
 			t.Errorf("header %s = %q want %q", k, got, want)
 		}
 	}
-	cookie := req.Header.Get("cookie")
-	if !contains(cookie, "li_at=LIAT_VAL") || !contains(cookie, `JSESSIONID="ajax:9876"`) {
-		t.Fatalf("cookie header missing creds: %q", cookie)
+}
+
+func TestParseCookies(t *testing.T) {
+	cs := parseCookies(`li_at=A; lidc=B; JSESSIONID="stale"; g_state={"i":0}`, "", `"ajax:1"`)
+	got := map[string]string{}
+	quoted := map[string]bool{}
+	for _, c := range cs {
+		got[c.Name] = c.Value
+		quoted[c.Name] = c.Quoted
+	}
+	if got["li_at"] != "A" || got["lidc"] != "B" || got["JSESSIONID"] != "ajax:1" || !quoted["JSESSIONID"] {
+		t.Fatalf("parsed values=%v quoted=%v", got, quoted)
+	}
+	if got["g_state"] != "{i:0}" {
+		t.Fatalf("g_state should be cookie-safe, got %q", got["g_state"])
+	}
+}
+
+func TestParseCookiesSkipsHeaderJSESSIONIDWhenBootstrapping(t *testing.T) {
+	cs := parseCookies(`li_at=A; JSESSIONID="stale"`, "", "")
+	for _, c := range cs {
+		if c.Name == "JSESSIONID" {
+			t.Fatalf("JSESSIONID should be skipped when client will bootstrap, got %+v", c)
+		}
 	}
 }
 
@@ -73,7 +94,38 @@ func TestGetRawSendsCookiesToServer(t *testing.T) {
 	if _, err := c.GetRaw("/identity", nil); err != nil {
 		t.Fatal(err)
 	}
-	if !contains(gotCookie, "li_at=LIAT_VAL") || gotCsrf != "ajax:9876" {
+	if !contains(gotCookie, "li_at=LIAT_VAL") ||
+		!contains(gotCookie, `JSESSIONID="ajax:9876"`) ||
+		gotCsrf != "ajax:9876" {
+		t.Fatalf("server saw cookie=%q csrf=%q", gotCookie, gotCsrf)
+	}
+}
+
+func TestGetRawBootstrapsJSESSIONIDFromRoot(t *testing.T) {
+	var gotCookie, gotCsrf string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/":
+			http.SetCookie(w, &http.Cookie{Name: "JSESSIONID", Value: "ajax:minted", Quoted: true, Path: "/"})
+			w.Write([]byte(`<html></html>`))
+		case "/x":
+			gotCookie = r.Header.Get("cookie")
+			gotCsrf = r.Header.Get("csrf-token")
+			w.Write([]byte(`{"ok":true}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(Creds{LiAt: "LIAT_VAL", UserAgent: "UA/1.0"})
+	c.Base = srv.URL
+	if _, err := c.GetRaw("/x", nil); err != nil {
+		t.Fatal(err)
+	}
+	if !contains(gotCookie, "li_at=LIAT_VAL") ||
+		!contains(gotCookie, `JSESSIONID="ajax:minted"`) ||
+		gotCsrf != "ajax:minted" {
 		t.Fatalf("server saw cookie=%q csrf=%q", gotCookie, gotCsrf)
 	}
 }

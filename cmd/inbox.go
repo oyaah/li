@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/oyaah/li/internal/output"
 	"github.com/oyaah/li/internal/voyager"
 	"github.com/spf13/cobra"
 )
@@ -10,11 +11,19 @@ var inboxCmd = &cobra.Command{
 	Short: "List recent conversations",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := authedClient()
+		c, err := authedReadClient()
 		if err != nil {
 			return err
 		}
-		b, err := c.GetRaw(voyager.Conversations(), nil)
+		me, err := c.GetRaw(voyager.Me(), nil)
+		if err != nil {
+			return err
+		}
+		mailbox := voyager.MailboxURN(me)
+		if mailbox == "" {
+			return output.ErrSchemaDrift
+		}
+		b, err := c.GetRaw(voyager.Conversations(mailbox), nil)
 		if err != nil {
 			return err
 		}

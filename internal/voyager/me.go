@@ -31,6 +31,31 @@ func (c *Client) MeName() (string, error) {
 	return "", nil
 }
 
+func MailboxURN(b []byte) string {
+	var m map[string]any
+	if json.Unmarshal(b, &m) != nil {
+		return ""
+	}
+	if urn := mailboxURNFromMap(m); urn != "" {
+		return urn
+	}
+	if data, ok := m["data"].(map[string]any); ok {
+		return mailboxURNFromMap(data)
+	}
+	return ""
+}
+
+func mailboxURNFromMap(m map[string]any) string {
+	for _, key := range []string{"*miniProfile", "entityUrn", "objectUrn"} {
+		if s, _ := m[key].(string); s != "" {
+			if id := urnID(s); id != "" {
+				return "urn:li:fsd_profile:" + id
+			}
+		}
+	}
+	return ""
+}
+
 func nameFrom(m map[string]any) string {
 	first, _ := m["firstName"].(string)
 	last, _ := m["lastName"].(string)

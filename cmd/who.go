@@ -10,11 +10,15 @@ var whoCmd = &cobra.Command{
 	Short: "Show a profile: name, headline, current role",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := authedClient()
+		c, err := authedReadClient()
 		if err != nil {
 			return err
 		}
-		b, err := c.GetRaw(voyager.ProfileView(args[0]), nil)
+		publicID, err := normalizeProfileID(args[0])
+		if err != nil {
+			return err
+		}
+		b, err := c.GetRaw(voyager.ProfileView(publicID), nil)
 		if err != nil {
 			return err
 		}

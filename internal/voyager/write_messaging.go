@@ -1,5 +1,7 @@
 package voyager
 
+import "strings"
+
 // SendMessage creates a message to a recipient (a new conversation thread).
 // Payload shape is drift-prone — verify live.
 func (c *Client) SendMessage(recipientURN, text string) error {
@@ -13,6 +15,9 @@ func (c *Client) SendMessage(recipientURN, text string) error {
 		},
 		"recipients": []string{recipientURN},
 	}
-	_, err := c.PostRaw(Conversations(), nil, payload)
+	_, err := c.PostRaw(pathConversations, nil, payload)
+	if err != nil && strings.Contains(err.Error(), "voyager returned 400") {
+		return usagef("message rejected by LinkedIn; recipient may not be messageable from this account yet")
+	}
 	return err
 }

@@ -7,7 +7,7 @@ var postCmd = &cobra.Command{
 	Short: "Post an update to your feed (auto-paced)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		c, l, j, err := writeDeps()
+		_, c, l, j, err := writeDeps()
 		if err != nil {
 			return err
 		}

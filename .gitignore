@@ -3,3 +3,9 @@ li
 *.test
 .DS_Store
 /dist/
+probe/
+
+# self-evolving-memory (never commit working memory)
+CLAUDE.local.md
+.memory/
+.supermemory/

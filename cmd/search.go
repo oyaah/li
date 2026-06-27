@@ -3,6 +3,7 @@ package cmd
 import (
 	"strings"
 
+	"github.com/oyaah/li/internal/auth"
 	"github.com/oyaah/li/internal/voyager"
 	"github.com/spf13/cobra"
 )
@@ -17,16 +18,11 @@ var searchCmd = &cobra.Command{
 	Short: "Search people by keyword",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := authedClient()
+		creds, err := auth.Load()
 		if err != nil {
 			return err
 		}
-		path, params := voyager.PeopleSearch(strings.Join(args, " "), searchTitle, searchCompany)
-		b, err := c.GetRaw(path, params)
-		if err != nil {
-			return err
-		}
-		people, err := voyager.ParsePeople(b)
+		people, err := voyager.SearchPeoplePage(creds, strings.Join(args, " "), searchTitle, searchCompany)
 		if err != nil {
 			return err
 		}

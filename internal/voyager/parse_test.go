@@ -2,6 +2,7 @@ package voyager
 
 import (
 	"errors"
+	"net/url"
 	"testing"
 
 	"github.com/oyaah/li/internal/output"
@@ -18,6 +19,35 @@ func TestParseProfile(t *testing.T) {
 	}
 	if p.Name != "Ada Lovelace" || p.Headline != "Mathematician" || p.Role != "Analyst @ Babbage Co" {
 		t.Fatalf("got %+v", p)
+	}
+}
+
+func TestParseDashProfile(t *testing.T) {
+	b := []byte(`{
+		"data":{"*elements":["urn:li:fsd_profile:1"]},
+		"included":[
+			{"entityUrn":"urn:li:fsd_profile:1","firstName":"Ada","lastName":"Lovelace","headline":"Mathematician"},
+			{"title":"Analyst","companyName":"Babbage Co"}
+		]
+	}`)
+	p, err := ParseProfile(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Name != "Ada Lovelace" || p.Headline != "Mathematician" || p.Role != "Analyst @ Babbage Co" {
+		t.Fatalf("got %+v", p)
+	}
+}
+
+func TestParseDashProfileURN(t *testing.T) {
+	_, urn, err := parseProfileDetails([]byte(`{
+		"included":[{"entityUrn":"urn:li:fsd_profile:1","firstName":"Ada","lastName":"Lovelace"}]
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if urn != "urn:li:fsd_profile:1" {
+		t.Fatalf("urn = %q", urn)
 	}
 }
 
@@ -56,6 +86,26 @@ func TestParsePeopleDriftMissingElements(t *testing.T) {
 	_, err := ParsePeople([]byte(`{"data":{}}`))
 	if !errors.Is(err, output.ErrSchemaDrift) {
 		t.Fatalf("got %v want drift", err)
+	}
+}
+
+func TestPeopleSearchPageURLIncludesFilters(t *testing.T) {
+	u, err := url.Parse(peopleSearchPageURL("founder", "ceo", "acme"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := u.Query()
+	if q.Get("keywords") != "founder" || q.Get("title") != "ceo" || q.Get("company") != "acme" {
+		t.Fatalf("query = %v", q)
+	}
+}
+
+func TestLooksLikeAuthPage(t *testing.T) {
+	if !looksLikeAuthPage([]byte(`<a href="/login?session_redirect=x">Sign in</a>`)) {
+		t.Fatal("expected login HTML to be treated as auth page")
+	}
+	if looksLikeAuthPage([]byte(`<main data-view-name="people-search-result"></main>`)) {
+		t.Fatal("expected search result HTML to be accepted")
 	}
 }
 

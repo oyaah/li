@@ -20,12 +20,12 @@ func healthServer(authFail bool, peopleBody string) *httptest.Server {
 		}
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/me"):
-			w.Write([]byte(`{"firstName":"A","lastName":"B"}`))
+			w.Write([]byte(`{"firstName":"A","lastName":"B","*miniProfile":"urn:li:fs_miniProfile:abc"}`))
 		case strings.Contains(r.URL.Path, "/search/blended"):
 			w.Write([]byte(peopleBody))
 		case strings.Contains(r.URL.Path, "JobCards"):
 			w.Write([]byte(`{"elements":[]}`))
-		case strings.Contains(r.URL.Path, "/messaging/conversations"):
+		case strings.Contains(r.URL.Path, "/messaging/conversations") || strings.Contains(r.URL.Path, "voyagerMessagingGraphQL"):
 			w.Write([]byte(`{"elements":[]}`))
 		default:
 			w.Write([]byte(`{}`))

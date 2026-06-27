@@ -14,7 +14,7 @@ var jobsCmd = &cobra.Command{
 	Short: "Search jobs by keyword",
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		c, err := authedClient()
+		c, err := authedReadClient()
 		if err != nil {
 			return err
 		}

@@ -1,8 +1,8 @@
 package voyager
 
 import (
-	"fmt"
 	"net/url"
+	"strings"
 )
 
 // SchemaVersion tags the pinned endpoint set. Bump it whenever a path or payload
@@ -15,8 +15,8 @@ const SchemaVersion = "2026-06-27"
 // changed). Treat every entry here as needing live verification (see plan U2)
 // and update SchemaVersion when re-pinned.
 const (
-	pathProfileView       = "/identity/profiles/%s/profileView"
-	pathSearchBlended     = "/search/blended"        // DEPRECATED upstream; GraphQL is current. Verify live.
+	pathProfileView       = "/identity/dash/profiles"
+	pathSearchBlended     = "/search/blended"          // DEPRECATED upstream; GraphQL is current. Verify live.
 	pathJobSearch         = "/voyagerJobsDashJobCards" // GraphQL-migrated. Verify live.
 	pathInvite            = "/growth/normInvitations"  // Commented out in reference fork. Verify live.
 	pathConversations     = "/messaging/conversations"
@@ -26,7 +26,10 @@ const (
 
 // ProfileView returns the path for a public-id profile fetch.
 func ProfileView(publicID string) string {
-	return fmt.Sprintf(pathProfileView, url.PathEscape(publicID))
+	q := url.Values{}
+	q.Set("q", "memberIdentity")
+	q.Set("memberIdentity", publicID)
+	return pathProfileView + "?" + q.Encode()
 }
 
 // PeopleSearch returns path + query for a blended people search. Marked
@@ -48,23 +51,36 @@ func PeopleSearch(keywords, title, company string) (string, url.Values) {
 
 // JobSearch returns path + query for a job search.
 func JobSearch(keywords, location string) (string, url.Values) {
-	q := url.Values{}
-	q.Set("keywords", keywords)
+	query := "(origin:JOB_SEARCH_PAGE_OTHER_ENTRY,keywords:" + restliEscape(keywords) + ",spellCorrectionEnabled:true"
 	if location != "" {
-		q.Set("location", location)
+		query += ",location:" + restliEscape(location)
 	}
-	return pathJobSearch, q
+	query += ")"
+	return pathJobSearch +
+		"?decorationId=com.linkedin.voyager.dash.deco.jobs.search.JobSearchCardsCollectionLite-88" +
+		"&count=7&q=jobSearch&query=" + query + "&servedEventEnabled=false&start=0", nil
 }
 
 // Invite returns the path for sending a connection invitation.
 func Invite() string { return pathInvite }
 
 // Conversations returns the path for listing the inbox.
-func Conversations() string { return pathConversations }
+func Conversations(mailboxURN string) string {
+	return "/voyagerMessagingGraphQL/graphql" +
+		"?queryId=messengerConversations.9501074288a12f3ae9e3c7ea243bccbf" +
+		"&variables=(query:(predicateUnions:List((conversationCategoryPredicate:(category:PRIMARY_INBOX)))),count:20,mailboxUrn:" +
+		url.QueryEscape(mailboxURN) + ")"
+}
+
+func Me() string { return pathMe }
+
+func restliEscape(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
+}
 
 // ConversationEvent returns the path for posting a message into a conversation.
 func ConversationEvent(conversationURN string) string {
-	return fmt.Sprintf(pathConversationEvent, url.PathEscape(conversationURN))
+	return "/messaging/conversations/" + url.PathEscape(conversationURN) + "/events"
 }
 
 // Share returns the path for creating a feed post.
