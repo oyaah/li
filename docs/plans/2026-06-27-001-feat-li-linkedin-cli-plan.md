@@ -1,7 +1,7 @@
 ---
 title: "feat: li — free lightweight LinkedIn CLI over Voyager"
 type: feat
-status: active
+status: completed
 date: 2026-06-27
 origin: docs/brainstorms/2026-06-27-li-linkedin-cli-requirements.md
 depth: deep
