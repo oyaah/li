@@ -7,8 +7,7 @@ This runbook is for maintainers cutting a public `li` release.
 First public releases are macOS/Homebrew-first:
 
 ```sh
-brew tap oyaah/tap
-brew install --cask oyaah/tap/li
+brew install oyaah/tap/li
 ```
 
 GitHub release artifacts may include Linux and Windows binaries, but do not call those auth paths fully supported until they have fresh live validation.
@@ -100,7 +99,7 @@ From a clean shell:
 
 ```sh
 brew update
-brew install --cask oyaah/tap/li
+brew install oyaah/tap/li
 li version
 li doctor
 ```

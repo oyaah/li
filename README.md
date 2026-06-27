@@ -9,11 +9,10 @@ This is unofficial software. Voyager is not a public API, LinkedIn can break it 
 Homebrew is the intended public install path:
 
 ```sh
-brew tap oyaah/tap
-brew install li
+brew install oyaah/tap/li
 ```
 
-Until the first public release is tagged, you can build from source:
+You can also build from source:
 
 ```sh
 go install github.com/oyaah/li@latest
@@ -102,7 +101,7 @@ Run it before filing bugs. If `doctor` says an endpoint drifted, LinkedIn probab
 
 ## Release Status
 
-The first public release is macOS/Homebrew-first. Linux and Windows binaries may be published as GitHub artifacts, but the Chrome/keyring auth path is currently tested hardest on macOS.
+The public release is macOS/Homebrew-first. Linux and Windows binaries are published as GitHub artifacts, but the Chrome/keyring auth path is currently tested hardest on macOS.
 
 Maintainer release steps live in [docs/usage/release.md](docs/usage/release.md).
 
