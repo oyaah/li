@@ -13,9 +13,11 @@ import (
 )
 
 var (
-	loginLiAt  string
-	loginJSess string
-	loginUA    string
+	loginLiAt    string
+	loginJSess   string
+	loginUA      string
+	loginBrowser bool
+	loginDryRun  bool
 )
 
 var loginCmd = &cobra.Command{
@@ -28,15 +30,38 @@ var loginCmd = &cobra.Command{
 		"WARNING: using the internal Voyager API violates LinkedIn's ToS and can get\n" +
 		"your account restricted. Use an account you can afford to lose.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		creds, err := gatherCreds()
+		var creds voyager.Creds
+		var err error
+		if loginBrowser {
+			creds, err = auth.FromBrowser() // reuse the existing browser session (low-detection path)
+		} else {
+			creds, err = gatherCreds()
+		}
 		if err != nil {
 			return err
+		}
+		if loginDryRun {
+			// Report cookie presence only — no LinkedIn call, nothing stored.
+			out.Human("li_at: %s", mask(creds.LiAt))
+			out.Human("JSESSIONID: %s", mask(creds.JSESSIONID))
+			out.Human("dry-run: cookies readable, no network call made, nothing stored")
+			return nil
 		}
 		return runLogin(creds, voyager.New(creds))
 	},
 }
 
+// mask shows only that a value is present and its length, never the secret.
+func mask(s string) string {
+	if s == "" {
+		return "(missing)"
+	}
+	return fmt.Sprintf("found (%d chars)", len(s))
+}
+
 func init() {
+	loginCmd.Flags().BoolVar(&loginBrowser, "from-browser", false, "import cookies from a logged-in local browser (recommended: reuses your existing session)")
+	loginCmd.Flags().BoolVar(&loginDryRun, "dry-run", false, "report whether cookies are readable without contacting LinkedIn or storing anything")
 	loginCmd.Flags().StringVar(&loginLiAt, "li-at", "", "li_at cookie value")
 	loginCmd.Flags().StringVar(&loginJSess, "jsessionid", "", "JSESSIONID cookie value (with quotes)")
 	loginCmd.Flags().StringVar(&loginUA, "user-agent", "", "browser User-Agent to clone (optional)")

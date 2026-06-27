@@ -2,6 +2,7 @@ package voyager
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,6 +69,12 @@ func (c *Client) buildRequest(method, path string, params url.Values, body io.Re
 	req.Header.Set("accept-language", "en-US,en;q=0.9")
 	req.Header.Set("x-restli-protocol-version", "2.0.0")
 	req.Header.Set("x-li-lang", "en_US")
+	// Blend with the real voyager-web client: these device/page hints accompany
+	// every browser request. Static plausible values are far less anomalous than
+	// their absence.
+	req.Header.Set("x-li-track", `{"clientVersion":"1.13.0","mpVersion":"1.13.0","osName":"web","timezoneOffset":0,"deviceFormFactor":"DESKTOP","mpName":"voyager-web","displayDensity":2}`)
+	req.Header.Set("x-li-page-instance", "urn:li:page:d_flagship3_feed;"+pageInstanceID())
+	req.Header.Set("referer", "https://www.linkedin.com/feed/")
 	req.Header.Set("csrf-token", Csrf(c.creds.JSESSIONID))
 	req.Header.Set("cookie", fmt.Sprintf("li_at=%s; JSESSIONID=%s", c.creds.LiAt, c.creds.JSESSIONID))
 	if body != nil {
@@ -117,6 +124,16 @@ func (c *Client) PostRaw(path string, params url.Values, payload any) ([]byte, e
 		return nil, err
 	}
 	return c.do(req)
+}
+
+// pageInstanceID returns a random UUID-shaped string for x-li-page-instance, as
+// the browser sends a fresh one per page view.
+func pageInstanceID() string {
+	var b [16]byte
+	_, _ = crand.Read(b[:])
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
 func snippet(b []byte) string {
